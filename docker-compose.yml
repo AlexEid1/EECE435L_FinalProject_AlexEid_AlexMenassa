@@ -5,7 +5,7 @@ services:
     container_name: mysql-container
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: yourpassword
       MYSQL_DATABASE: ecommerce
     ports:
       - "3306:3306"
@@ -14,5 +14,12 @@ services:
     build: ./customers
     ports:
       - "5000:5000"
+    depends_on:
+      - mysql
+
+  inventory:
+    build: ./inventory
+    ports:
+      - "5001:5001"
     depends_on:
       - mysql
