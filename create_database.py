@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import errorcode
 
 DB_CONFIG = {
-    'host': 'localhost',
+    'host': 'mysql-container',
     'user': 'root',
     'password': 'admin',
 }
