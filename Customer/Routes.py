@@ -7,7 +7,7 @@ customer_routes = Blueprint('customers', __name__)
 db_config = {
     'host': 'mysql-container',  
     'user': 'root',
-    'password': 'yourpassword',
+    'password': 'admin',
     'database': 'ecommerce'
 }
 
