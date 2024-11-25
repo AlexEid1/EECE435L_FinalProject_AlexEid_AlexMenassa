@@ -26,9 +26,10 @@ def register_customer():
             INSERT INTO customers (full_name, username, password, age, address, gender, marital_status, wallet_balance, admin)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
+        wallet_balance = data.get('wallet_balance', 0.0)
         cursor.execute(query, (
             data['full_name'], data['username'], data['password'], data['age'],
-            data['address'], data['gender'], data['marital_status'], 0.00, data.get('admin', False)
+            data['address'], data['gender'], data['marital_status'], wallet_balance , data.get('admin', False)
         ))
         conn.commit()
         return jsonify({"message": "Customer registered successfully!"}), 201
