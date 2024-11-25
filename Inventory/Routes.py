@@ -7,7 +7,7 @@ inventory_routes = Blueprint('inventory', __name__)
 db_config = {
     'host': 'mysql-container',  # Change to 'localhost' if not using Docker
     'user': 'root',
-    'password': 'yourpassword',
+    'password': 'admin',
     'database': 'ecommerce'
 }
 

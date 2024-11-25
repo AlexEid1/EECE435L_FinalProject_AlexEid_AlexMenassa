@@ -1,29 +1,37 @@
+import mysql.connector
 from flask import Blueprint, request, jsonify
 
 sales_bp = Blueprint('sales', __name__)
 
-# Placeholder for database (to be replaced with actual DB integration)
-inventory = [
-    {"id": 1, "name": "Laptop", "price": 1200, "quantity": 10},
-    {"id": 2, "name": "Phone", "price": 800, "quantity": 5}
-]
-
-customer_wallets = {
-    "customer1": 1500,  # Example data
-}
-
-purchase_history = []
+# Database connection
+def get_db_connection():
+    return mysql.connector.connect(
+        host="mysql-container",
+        user="root",
+        password="admin",
+        database="ecommerce"
+    )
 
 # Display available goods
 @sales_bp.route('/display_goods', methods=['GET'])
 def display_goods():
-    available_goods = [{"name": item["name"], "price": item["price"]} for item in inventory if item["quantity"] > 0]
-    return jsonify(available_goods), 200
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT name, price FROM inventory WHERE quantity > 0")
+    goods = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return jsonify(goods), 200
 
 # Get goods details
 @sales_bp.route('/get_goods_details/<int:item_id>', methods=['GET'])
 def get_goods_details(item_id):
-    item = next((item for item in inventory if item["id"] == item_id), None)
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM inventory WHERE id = %s", (item_id,))
+    item = cursor.fetchone()
+    cursor.close()
+    connection.close()
     if item:
         return jsonify(item), 200
     return jsonify({"error": "Item not found"}), 404
@@ -36,29 +44,52 @@ def sale():
     item_id = data.get("item_id")
     quantity = data.get("quantity", 1)
 
-    # Validate customer
-    if username not in customer_wallets:
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Check if customer exists
+    cursor.execute("SELECT wallet FROM customers WHERE username = %s", (username,))
+    customer = cursor.fetchone()
+    if not customer:
+        cursor.close()
+        connection.close()
         return jsonify({"error": "Customer not found"}), 404
 
-    # Validate item
-    item = next((item for item in inventory if item["id"] == item_id), None)
+    # Check if item exists and is available
+    cursor.execute("SELECT name, price, quantity FROM inventory WHERE id = %s", (item_id,))
+    item = cursor.fetchone()
     if not item or item["quantity"] < quantity:
+        cursor.close()
+        connection.close()
         return jsonify({"error": "Item not available"}), 404
 
-    # Validate funds
+    # Check customer wallet balance
     total_cost = item["price"] * quantity
-    if customer_wallets[username] < total_cost:
+    if customer["wallet"] < total_cost:
+        cursor.close()
+        connection.close()
         return jsonify({"error": "Insufficient funds"}), 400
 
     # Process sale
-    customer_wallets[username] -= total_cost
-    item["quantity"] -= quantity
-    purchase_history.append({"username": username, "item": item["name"], "quantity": quantity, "total": total_cost})
+    cursor.execute("UPDATE customers SET wallet = wallet - %s WHERE username = %s", (total_cost, username))
+    cursor.execute("UPDATE inventory SET quantity = quantity - %s WHERE id = %s", (quantity, item_id))
+    cursor.execute(
+        "INSERT INTO sales (username, item_name, quantity, total) VALUES (%s, %s, %s, %s)",
+        (username, item["name"], quantity, total_cost)
+    )
+    connection.commit()
+    cursor.close()
+    connection.close()
 
-    return jsonify({"message": "Purchase successful", "remaining_balance": customer_wallets[username]}), 200
+    return jsonify({"message": "Purchase successful"}), 200
 
 # Purchase history API
 @sales_bp.route('/purchase_history/<string:username>', methods=['GET'])
 def purchase_history_api(username):
-    history = [record for record in purchase_history if record["username"] == username]
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM sales WHERE username = %s", (username,))
+    history = cursor.fetchall()
+    cursor.close()
+    connection.close()
     return jsonify(history), 200
