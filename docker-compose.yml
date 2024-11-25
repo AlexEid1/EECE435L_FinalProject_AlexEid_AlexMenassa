@@ -27,6 +27,13 @@ services:
   sales:
     build: ./Sales
     ports:
-      - "5003:5003"
+      - "5002:5002"
     depends_on:
       - mysql
+
+  reviews:
+      build: ./Reviews
+      ports:
+        - "5003:5003"
+      depends_on:
+        - mysql
