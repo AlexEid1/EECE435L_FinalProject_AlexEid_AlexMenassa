@@ -1,25 +1,29 @@
 version: '3.8'
 services:
-  mysql:
-    image: mysql:latest
-    container_name: mysql-container
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: yourpassword
-      MYSQL_DATABASE: ecommerce
-    ports:
-      - "3306:3306"
-
-  customers:
-    build: ./customers
+  customer_service:
+    build:
+      context: ./Customer
     ports:
       - "5000:5000"
-    depends_on:
-      - mysql
+    networks:
+      - ecommerce_network
 
-  inventory:
-    build: ./inventory
+  inventory_service:
+    build:
+      context: ./Inventory
     ports:
       - "5001:5001"
-    depends_on:
-      - mysql
+    networks:
+      - ecommerce_network
+
+  sales_service:
+    build:
+      context: ./Sales
+    ports:
+      - "5003:5003"
+    networks:
+      - ecommerce_network
+
+networks:
+  ecommerce_network:
+    driver: bridge
